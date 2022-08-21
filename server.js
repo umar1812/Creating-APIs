@@ -18,8 +18,27 @@ app.get('/inventory', async (req, res) => {
     }
 })
 
+app.get("/inventory/electronics", async (req, res) => {
+    try {
+        const inventE = await Inventory.find({ "type": "Electronics" })
+        res.send(inventE)
+    } catch (err) {
+        res.send(err.message)
+    }
+})
+
+app.get("/inventory/furniture", async (req, res) => {
+    try {
+        const inventE = await Inventory.find({ "type": "Furniture" })
+        res.send(inventE)
+    } catch (err) {
+        res.send(err.message)
+    }
+})
+
 app.post('/inventory/post', async (req, res) => {
     try {
+
         let newIn = new Inventory({
             type: req.body.type,
             item: req.body.item,
@@ -43,16 +62,21 @@ app.get('/orders', async (req, res) => {
 
 app.post('/orders/post', async (req, res) => {
     try {
-        let ordernew = new Order({
-            cus_id: req.body.cus,
-            invent_id: req.body.invent,
-            item: req.body.item,
-            quantity: req.body.quantity
-        })
-        const newOrder = await ordernew.save()
-        await Inventory.updateOne({ "item": req.body.item }, { $inc: { "quantity": - (req.body.quantity) } })
-        const left = await Inventory.findOne({ "item": req.body.item })
-        res.status(201).send(`New order is ${newOrder.item} = ${newOrder.quantity}. ${newOrder.item} left in inventory: ${left.quantity}`)
+        let check = await Inventory.findOne({ "item": req.body.item })
+        if (check.quantity > req.body.quantity) {
+            let ordernew = new Order({
+                cus_id: req.body.cus,
+                invent_id: req.body.invent,
+                item: req.body.item,
+                quantity: req.body.quantity
+            })
+            const newOrder = await ordernew.save()
+            await Inventory.updateOne({ "item": req.body.item }, { $inc: { "quantity": - (req.body.quantity) } })
+            const left = await Inventory.findOne({ "item": req.body.item })
+            res.status(201).send(`New order is ${newOrder.item} = ${newOrder.quantity}. ${newOrder.item} left in inventory: ${left.quantity}`)
+        } else {
+            res.status(401).send("Out of stock")
+        }
     } catch (err) {
         res.send(err.message)
     }
